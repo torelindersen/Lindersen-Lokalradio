@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050507">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lokalradio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Lindersen Lokalradio</title>
+<style>
+:root{--gold:#e1b85b;--purple:#7d35dc;--text:#fff8ec}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 50% -8%,rgba(92,34,130,.42),rgba(18,10,24,.72) 30%,#050507 62%),linear-gradient(#08070d,#020203);
+  padding:calc(env(safe-area-inset-top) + 8px) 15px calc(env(safe-area-inset-bottom) + 10px);
+  overflow-x:hidden;
+}
+.wrap{max-width:520px;margin:0 auto;min-height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 18px);display:flex;flex-direction:column;gap:10px}
+.brand{text-align:center;padding-top:0}
+.logo{width:min(310px,72vw);max-height:190px;object-fit:contain;filter:drop-shadow(0 14px 25px rgba(0,0,0,.65));display:block;margin:0 auto}
+.channels{display:grid;gap:8px}
+.card{
+  min-height:64px;display:flex;align-items:center;gap:15px;border-radius:21px;
+  padding:11px 17px;font-size:22px;
+  background:linear-gradient(145deg,rgba(17,18,25,.97),rgba(7,8,12,.97));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);cursor:pointer
+}
+.card.active{border:2px solid var(--gold);background:linear-gradient(145deg,rgba(44,31,16,.84),rgba(10,10,15,.98));box-shadow:0 0 0 1px rgba(225,184,91,.22),0 0 22px rgba(225,184,91,.18)}
+.emoji{font-size:31px;width:40px;text-align:center;line-height:1}
+.bars{margin-left:auto;display:flex;gap:5px;align-items:end;height:26px}
+.bars span{width:6px;border-radius:9px;background:var(--gold);display:block}
+.bars span:nth-child(1){height:10px}.bars span:nth-child(2){height:18px}.bars span:nth-child(3){height:26px}
+.player{
+  border-radius:25px;padding:15px 18px 14px;
+  background:linear-gradient(145deg,rgba(17,17,23,.97),rgba(6,6,10,.98));
+  border:1px solid rgba(125,53,220,.55);
+  box-shadow:0 18px 54px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.05)
+}
+.playerTop{display:flex;align-items:flex-start;gap:12px}
+.playerIcon{font-size:31px;width:38px;line-height:1.1}
+.title{font-size:27px;font-weight:950;margin:0 0 6px}
+.badge{display:inline-block;padding:5px 12px;border-radius:999px;background:linear-gradient(180deg,#f3d27d,#d9ab4c);color:#130e05;font-size:13px;font-weight:950;margin-bottom:11px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
+button{border:0;border-radius:20px;padding:14px 7px;font-size:23px;font-weight:950}
+#playBtn{background:linear-gradient(180deg,#f1cf78,#d8aa4b);color:#100c05}
+#stopBtn{background:linear-gradient(145deg,#343438,#222226);color:#fff}
+audio{width:100%;height:40px;filter:sepia(.35) saturate(1.25)}
+@media(max-height:760px){
+  .logo{width:min(265px,62vw);max-height:145px}
+  .card{min-height:58px;font-size:20px;padding:9px 15px}
+  .emoji{font-size:28px;width:36px}
+  .channels{gap:7px}
+  .player{padding:13px 16px 12px}
+  .title{font-size:25px}
+  button{font-size:21px;padding:12px 7px}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="brand">
+  <img class="logo" src="assets/lindersen-lokalradio-logo.png" alt="Lindersen Lokalradio">
+</section>
+
+<section id="channels" class="channels"></section>
+
+<section class="player">
+  <div class="playerTop">
+    <div id="playerIcon" class="playerIcon">🎼</div>
+    <div>
+      <div id="currentTitle" class="title">NRK Klassisk</div>
+      <div id="badge" class="badge">TRYKK SPILL</div>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="playBtn">▶ Spill</button>
+    <button id="stopBtn">■ Stopp</button>
+  </div>
+  <audio id="audio" controls playsinline></audio>
+</section>
+</main>
+
+<script>
+const channels=[
+  {name:"NRK Klassisk",emoji:"🎼",stream:"https://lyd.nrk.no/nrk_radio_klassisk_mp3_h"},
+  {name:"Radio Værøy",emoji:"🌊",stream:"https://lyd.radiovaroy.no/varoy_hq"},
+  {name:"Radio Haugaland",emoji:"🎙️",stream:"https://sc.theradiohub.com/stream/1/"},
+  {name:"Radio Trøndelag",emoji:"🏔️",stream:"https://nettradio.radiotrondelag.no:8443/radio_trondelag"}
+];
+
+const grid=document.getElementById("channels");
+const audio=document.getElementById("audio");
+const title=document.getElementById("currentTitle");
+const badge=document.getElementById("badge");
+const playBtn=document.getElementById("playBtn");
+const stopBtn=document.getElementById("stopBtn");
+const playerIcon=document.getElementById("playerIcon");
+let selected=0;
+
+function render(){
+  grid.innerHTML="";
+  channels.forEach((c,i)=>{
+    const el=document.createElement("div");
+    el.className="card"+(i===selected?" active":"");
+    el.innerHTML=`<div class="emoji">${c.emoji}</div><div>${c.name}</div><div class="bars"><span></span><span></span><span></span></div>`;
+    el.onclick=()=>select(i,true);
+    grid.appendChild(el);
+  });
+}
+
+function select(i,auto=false){
+  selected=i;
+  const c=channels[i];
+  localStorage.setItem("selectedChannel",i);
+  title.textContent=c.name;
+  playerIcon.textContent=c.emoji;
+  audio.src=c.stream;
+  playBtn.textContent="▶ Spill";
+  badge.textContent="TRYKK SPILL";
+  render();
+  if(auto) play();
+}
+
+async function play(){
+  try{
+    await audio.play();
+    playBtn.textContent="⏸ Pause";
+    badge.textContent="DIREKTE SENDT";
+  }catch(e){
+    badge.textContent="TRYKK SPILL IGJEN";
+  }
+}
+
+playBtn.onclick=()=>audio.paused?play():(audio.pause(),playBtn.textContent="▶ Spill",badge.textContent="PAUSET");
+stopBtn.onclick=()=>{audio.pause();audio.currentTime=0;playBtn.textContent="▶ Spill";badge.textContent="STOPPET"};
+audio.addEventListener("playing",()=>{playBtn.textContent="⏸ Pause";badge.textContent="DIREKTE SENDT"});
+audio.addEventListener("pause",()=>{if(!audio.ended&&audio.currentTime>0)badge.textContent="PAUSET"});
+
+const saved=localStorage.getItem("selectedChannel");
+select(saved!==null?Number(saved):0,false);
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
